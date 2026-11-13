@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const path = require("path");
+const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,7 +16,7 @@ const N8N_WEBHOOK_KEY = process.env.N8N_WEBHOOK_KEY || "dedd191c576fb6ad51ec822f
 
 app.use(express.json());
 
-// Izinkan akses CORS untuk Live Server dan browser lokal
+// Izinkan akses CORS untuk semua origin (Live Server, Vercel, localhost)
 app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", "*");
     res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -27,8 +28,31 @@ app.use((req, res, next) => {
     next();
 });
 
-// Sajikan file statis sehingga website bisa langsung dibuka di http://localhost:3000
+// Sajikan file statis dari folder public dan root
+app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(__dirname));
+
+// Route eksplisit untuk halaman utama agar Vercel tidak menghasilkan "Cannot GET /"
+app.get("/", (req, res) => {
+    const publicIndex = path.join(__dirname, "public", "index.html");
+    const rootIndex = path.join(__dirname, "index.html");
+    const cwdIndex = path.join(process.cwd(), "index.html");
+    const cwdPublicIndex = path.join(process.cwd(), "public", "index.html");
+
+    if (fs.existsSync(rootIndex)) {
+        return res.sendFile(rootIndex);
+    }
+    if (fs.existsSync(publicIndex)) {
+        return res.sendFile(publicIndex);
+    }
+    if (fs.existsSync(cwdIndex)) {
+        return res.sendFile(cwdIndex);
+    }
+    if (fs.existsSync(cwdPublicIndex)) {
+        return res.sendFile(cwdPublicIndex);
+    }
+    res.send("Housepoint Coffee Shop Management API Online.");
+});
 
 // Endpoint cek status server, Hermes AI, dan n8n Webhook
 app.get("/api/status", async (req, res) => {
@@ -291,10 +315,15 @@ app.post("/api/chat", async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`===============================================`);
-    console.log(`☕ Housepoint Server aktif di http://127.0.0.1:${PORT}`);
-    console.log(`✦ Hermes AI Gateway URL: ${HERMES_BASE_URL}`);
-    console.log(`✦ n8n Webhook URL: ${N8N_WEBHOOK_URL}`);
-    console.log(`===============================================`);
-});
+// Jalankan listener jika dijalankan lokal (di Vercel, app diexport)
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`===============================================`);
+        console.log(`☕ Housepoint Server aktif di http://127.0.0.1:${PORT}`);
+        console.log(`✦ Hermes AI Gateway URL: ${HERMES_BASE_URL}`);
+        console.log(`✦ n8n Webhook URL: ${N8N_WEBHOOK_URL}`);
+        console.log(`===============================================`);
+    });
+}
+
+module.exports = app;
