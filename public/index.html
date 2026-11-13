@@ -1589,6 +1589,12 @@ tr:hover td { background: #fafcfa; }
 
 <!-- APPLICATION JAVASCRIPT -->
 <script>
+// Base API: Jika dibuka di Live Server port 5500, arahkan ke localhost:3000.
+// Jika dibuka di Vercel atau localhost:3000, gunakan relative URL ('')
+const API_BASE = ((window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') && window.location.port === '5500')
+  ? 'http://127.0.0.1:3000'
+  : '';
+
 // ==========================================
 // 1. DATA INITIALIZATION & LOCAL STORAGE
 // ==========================================
@@ -1980,7 +1986,7 @@ function handleSaveOrder(e) {
 async function syncOrderToN8N(order) {
   if (!order) return;
   try {
-    const res = await fetch('http://127.0.0.1:3000/api/sync-order', {
+    const res = await fetch(`${API_BASE}/api/sync-order`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(order)
@@ -2406,7 +2412,7 @@ chatForm.addEventListener('submit', async e => {
   chatSuggestions.style.display = 'none';
 
   try {
-    const res = await fetch('http://127.0.0.1:3000/api/chat', {
+    const res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message, history: chatHistory })
@@ -2439,7 +2445,7 @@ async function checkHermesStatus(showToastMsg = false) {
   const settingsPill = document.getElementById('settingsHermesStatusPill');
 
   try {
-    const res = await fetch('http://127.0.0.1:3000/api/status', { signal: AbortSignal.timeout(3000) });
+    const res = await fetch(`${API_BASE}/api/status`, { signal: AbortSignal.timeout(3000) });
     if (res.ok) {
       const data = await res.json();
       if (data.hermesGateway) {
